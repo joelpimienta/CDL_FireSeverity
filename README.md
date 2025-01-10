@@ -9,7 +9,7 @@ This repo assumes you have already installed R, Python (or other distribution li
 - [Python](https://www.python.org/)
 - [RStudio Desktop](https://posit.co/download/rstudio-desktop/)
 
-## Setup
+## Initial Setup
 
 The code in this repo is dependent on both R packages and Python libraries. Follow the below instructions to setup your machine after cloning.
 
@@ -83,7 +83,12 @@ reticulate::py_config()
 
 If you see the path to your virtual environment python, you have successfully connected R and Python!
 
+## Regular Startup
 
+Once you have setup the project following the instructions above once, the following steps will need to be taken each time you want to start up and use this project:
+
+1. Open the `.Rproj` file
+2. Activate your Python virtual environment ([see instructions above](#activate-virtual-environment))
 
 
 
