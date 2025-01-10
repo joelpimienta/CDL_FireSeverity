@@ -15,17 +15,11 @@ The code in this repo is dependent on both R packages and Python libraries. Foll
 
 **Note: these setup instructions only need to be run once when the repo is first cloned**
 
-### R + Python
-
-In an R console, run the following command to install `reticulate`, a package that allows R and Python to work together. More info about `reticulate` can be found [here](https://rstudio.github.io/reticulate/index.html)
-
-```
-install.packages("reticulate")
-```
+### Python
 
 #### Activate Virtual Environment
 
-In a terminal or command shell, navigate to the project directory on your local machine using `cd`. For example, on my machine the command would be `cd /c/Users/<my-username>/Documents/CDL_FireSeverity`.
+In a terminal or command shell, navigate to the project directory on your local machine using `cd` or `chdir`. For example, on my machine the command would be `cd /c/Users/<my-username>/Documents/CDL_FireSeverity`.
 
 Once in the project directory, activate the virtual environment by running one of the following commands:
 
@@ -45,6 +39,13 @@ Lastly, run the following command to install the dependencies for Python:
 
 ```
 pip install -r requirements.txt
+```
+### R
+
+In an R console, run the following command to install `reticulate`, a package that allows R and Python to work together. More info about `reticulate` can be found [here](https://rstudio.github.io/reticulate/index.html).
+
+```
+install.packages("reticulate")
 ```
 
 #### Connect Reticulate to Python
