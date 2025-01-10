@@ -1,13 +1,21 @@
 # CDL_FireSeverity
 Repository for CDL Guatemala Fire Severity Analysis Nov 2024
 
+## Requirements
+
+This repo assumes you have already installed R, Python (or other distribution like Anaconda), and RStudio. If you have not installed these tools, please install them before proceeding.
+
+- [R](https://cran.r-project.org/)
+- [Python](https://www.python.org/)
+- [RStudio Desktop](https://posit.co/download/rstudio-desktop/)
+
 ## Setup
 
 The code in this repo is dependent on both R packages and Python libraries. Follow the below instructions to setup your machine after cloning.
 
 **Note: these setup instructions only need to be run once when the repo is first cloned**
 
-### Install Reticulate
+### R + Python
 
 In an R console, run the following command to install `reticulate`, a package that allows R and Python to work together. More info about `reticulate` can be found [here](https://rstudio.github.io/reticulate/index.html)
 
@@ -15,20 +23,53 @@ In an R console, run the following command to install `reticulate`, a package th
 install.packages("reticulate")
 ```
 
+#### Activate Virtual Environment
+
+In a terminal or command shell, navigate to the project directory on your local machine using `cd`. For example, on my machine the command would be `cd /c/Users/<my-username>/Documents/CDL_FireSeverity`.
+
+Once in the project directory, activate the virtual environment by running one of the following commands:
+
+*Mac/Linux*
+
+```
+source venv/Scripts/activate
+```
+
+*Windows*
+
+```
+venv\Scripts\activate
+```
+
+Lastly, run the following command to install the dependencies for Python:
+
+```
+pip install -r requirements.txt
+```
+
 #### Connect Reticulate to Python
 
-There are two options for this section. First, if you already have a Python version setup that you'd like to use you can tell R to use that. Second, if you do not have Python version setup, we will use [miniconda](https://docs.anaconda.com/miniconda/), a miniature install of Anaconda.
-
-##### Existing Python Version
-
-To use an existing version of Python on your machine, follow the instructions found [here](https://rstudio.github.io/reticulate/index.html#python-version) to tell `reticulate` which version to use.
-
-##### Using Miniconda
-
-To install and use `miniconda` with reticulate, simply run the following commands in an R console:
+Now we need to connect R and Python using `reticulate`. In an R console window, run the following command, replacing the `<path-to-python>` with the path to your virtual environment Python install.
 
 ```
-reticulate::install_miniconda()
+reticulate::use_virtualenv("<path>/<to>/<your>/python.exe", required = TRUE)
 ```
 
-For more info on this install, see their documentation [here](https://rstudio.github.io/reticulate/reference/install_miniconda.html).
+For example, on my machine, I ran the command:
+
+```
+"C:/Users/Documents/CDL_FireSeverity/venv/Scripts/python.exe", required = TRUE)
+```
+
+To test this was successful, run the following command in an R console:
+
+```
+reticulate::py_config()
+```
+
+If you see the path to your virtual environment python, you have successfully connected R and Python!
+
+
+
+
+
