@@ -17,11 +17,19 @@ The code in this repo is dependent on both R packages and Python libraries. Foll
 
 ### Python
 
-#### Activate Virtual Environment
+#### Create a Virtual Environment
 
 In a terminal or command shell, navigate to the project directory on your local machine using `cd` or `chdir`. For example, on my machine the command would be `cd /c/Users/<my-username>/Documents/CDL_FireSeverity`.
 
-Once in the project directory, activate the virtual environment by running one of the following commands:
+Once in the project directory, create a virtual environment by running the following commands:
+
+```
+python -m venv venv
+```
+
+#### Activate Virtual Environment
+
+Still in the project directory, activate the virtual environment by running one of the following commands:
 
 *Mac/Linux*
 
@@ -35,6 +43,8 @@ source venv/Scripts/activate
 venv\Scripts\activate
 ```
 
+#### Install Required Packages
+
 Lastly, run the following command to install the dependencies for Python:
 
 ```
@@ -44,8 +54,11 @@ pip install -r requirements.txt
 
 In an R console, run the following command to install `reticulate`, a package that allows R and Python to work together. More info about `reticulate` can be found [here](https://rstudio.github.io/reticulate/index.html).
 
+Additionally, install `renv` to manage the R packages.
+
 ```
 install.packages("reticulate")
+install.packages("renv")
 ```
 
 #### Connect Reticulate to Python
