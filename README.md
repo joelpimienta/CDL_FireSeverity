@@ -91,4 +91,24 @@ Once you have setup the project following the instructions above once, the follo
 2. Activate your Python virtual environment ([see instructions above](#activate-virtual-environment))
 
 
+## Setting Up Google Earth Engine
+
+This repo relies on Google Earth Engine and you will need an account (it's free) to use this code.
+
+### Creating a Google Earth Engine Project
+
+First you will need to create a Google Cloud Project and give it Earth Engine access. Here's the documentation from Google on setting that up (here)[https://developers.google.com/earth-engine/guides/access].
+
+### Connecting Google Earth Engine to this Project
+
+To connect your local version of this project to Google Earth Engine, run the following lines each session in a Python terminal, replacing "project" with the name of your project you created in the step above.
+
+```
+  ee.Authenticate()
+  ee.Initialize(project)
+```
+
+## Resources
+
+https://spatialthoughts.com/2024/10/23/large-image-exports-gee/
 
