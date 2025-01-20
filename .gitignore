@@ -3,5 +3,9 @@
 .RData
 .Ruserdata
 
+data/
+
+.ipynb_checkpoints/
+
 # mac files to ignore
 .DS_Store
