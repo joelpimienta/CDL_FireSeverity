@@ -80,8 +80,6 @@ library(dplyr)
 library(terra)
 library(ggspatial)
 library(sf)
-library(stars)
-library(raster)
 library(reticulate)
 library(leaflet)
 library(leafem)
@@ -138,15 +136,15 @@ post_end_date <- "2024-10-01"
 out_dir <- "data/post"
 
 # # uncomment this section to re-download the images
-process_aoi(
-    project,
-    fire_1,
-    post_start_date,
-    post_end_date,
-    out_dir,
-    filter_lim = 50,
-    prefix="landsat_post_",
-)
+# process_aoi(
+#     project,
+#     fire_1,
+#     post_start_date,
+#     post_end_date,
+#     out_dir,
+#     filter_lim = 30,
+#     prefix="landsat_post_",
+# )
 
 ```
 
@@ -161,8 +159,13 @@ pre_fires <- pre_fire_files |>
   map(rast) |>
   reduce(mosaic)
 
-# Plot the merged raster
-plot(pre_fires)
+# Plotting in RGB to test
+par(col.axis = 'white', col.lab = 'white', tck = 0)
+plotRGB(pre_fires,
+        r= 2, g= 1, b= 1,
+        stretch = 'lin',
+        axes = TRUE,
+        main = 'Prefire RGB Composite Image, Bands 5,7')
 
 ```
 ```{r}
@@ -174,167 +177,110 @@ post_fires <- post_fire_files |>
   map(rast) |>
   reduce(mosaic)
 
-# Plot the merged raster
-plot(post_fires)
+par(col.axis = 'white', col.lab = 'white', tck = 0)
+plotRGB(post_fires,
+        r= 2, g= 1, b= 1,
+        stretch = 'lin',
+        axes = TRUE,
+        main = 'Postfire RGB Composite Image, Bands 5,7')
 
 ```
-# box(col = 'white')
-# 
-# par(col.axis = 'white', col.lab = 'white', tck = 0)
-# plotRGB(postfire_brick_all,
-#         r= 4, g= 3, b= 2,
-#         stretch = 'lin',
-#         axes = TRUE,
-#         main = 'Postfire RGB Composite Image, Bands 4,3,2')
-# box(col = 'white')
-# 
-# # Plot a prefire false color composite using bands 7,5,2 to calculate the dNBR Index
-# par(col.axis = 'white', col.lab = 'white', tck = 0)
-# plotRGB(prefire_brick_all,
-#         r= 7, g= 5, b= 2,
-#         stretch = 'lin',
-#         axes = TRUE,
-#         main = 'False Color Composite Image, Bands 7,5,2')
-# box(col = 'white')
-# 
-# #Repeat the process to create a postfire false color composite using bands 7,5,2 to calculate the dNBR Index
-# par(col.axis = 'white', col.lab = 'white', tck = 0)
-# plotRGB(postfire_brick_all,
-#         r= 7, g= 5, b= 2,
-#         stretch = 'lin',
-#         axes = TRUE,
-#         main = 'False Color Composite Image, Bands 7,5,2')
-# box(col = 'white')
-# 
-# # YOU HAVE REACHED THE END OF PART ONE:IMPORTING LANDSAT .TIF FILES DOWNLOADED FROM USGS EARTHEXPLORER DATABASE ############################
-# # AND CREATE COMPOSITE IMAGES FOR DNBR INDEX CALCULATIONS AND PLOTTING
-# 
-# #################################################################################################################################################
-# #################################################################################################################################################
-# #
-# # Beginning PART TWO of the tutorial
-# #
-# #############################################################################################
-# #                                                                                           #
-# #                                                                                           #
-# #  PART 2: CALCULATING AND PLOTTING THE DNBR INDEX USING LANDSAT SATELLITE IMAGERY          #                                        #
-# #                                                                                           #
-# #                                                                                           #
-# #############################################################################################
-# #
-# # All neccesary packages were loaded in PART ONE of the tutorial
-# # You have created a composite raster object (prefire_brick_all + postfire_brick_all) in PART ONE of the tutorial
-# #
-# # The bands used for dNBR fire severity classification are:
-# #
-# # Band 7: Shorwave-Infrared 2
-# # Band 5: Near-Infrared
-# # Band 2: Blue
-# #
-# # You will use them in place of the red, green, and blue bands, respectively
-# 
-# # Refer to this section or the USGS Landsat 8 link here https://www.usgs.gov/landsat-missions/landsat-8
-# # Modify the bands you use for your study purposes. Other indices use multi-band satellite imagery to create maps
-# ###############################################################################################################################
-# 
-# # Plot a false color composite using bands 7,5,2 to calculate the dNBR Index ###################################
-# par(col.axis = 'white', col.lab = 'white', tck = 0)
-# plotRGB(prefire_brick_all,
-#         r= 7, g= 5, b= 2,
-#         stretch = 'lin',
-#         axes = TRUE,
-#         main = 'Prefire False Color Composite Image, Bands 7,5,2')
-# box(col = 'white')
-# 
-# #Repeat the process to create a postfire false color composite using bands 7,5,2 to calculate the dNBR Index
-# par(col.axis = 'white', col.lab = 'white', tck = 0)
-# plotRGB(postfire_brick_all,
-#         r= 7, g= 5, b= 2,
-#         stretch = 'lin',
-#         axes = TRUE,
-#         main = 'Postfire False Color Composite Image, Bands 7,5,2')
-# box(col = 'white')
-# 
-# ################################################################################################################
-# #
-# # Calculating the Differenced Normalized Burn Ratio Index using the false color composites
-# nbr_pre <- 1000 * (prefire_brick_all[[5]] - prefire_brick_all[[7]]) /
-#   (prefire_brick_all[[5]] + prefire_brick_all[[7]])
-# 
-# nbr_post <- 1000 * (postfire_brick_all[[5]] - postfire_brick_all[[7]]) /
-#   (postfire_brick_all[[5]] + postfire_brick_all[[7]])
-# 
-# # Attempt to calculate the Differenced Normalized Burn Ratio Index
-# dnbr <- (nbr_pre) - (nbr_post)
-# 
-# # YOU WILL RECIEVE A WARNING MESSAGE, BUT THIS IS EXPECTED
-# # CONTINUE FOLLOWING THE TUTORIAL #############################################################
-# # You will get a warning pasted below:
-# # 'Warning message:
-# #   In nbr_pre - nbr_post :
-# # Raster objects have different extents. Result for their intersection is returned
-# #
-# # IMPORTANT: YOU NEED TO RECIEVE THIS WARNING TO CONTINUE
-# # 'results for their intersection is returned' INDICATES THE CALCULATION WAS SUCCESSFUL
-# #
-# # This occurs because each image will not have perfect overlap
-# # Confirm that the Coordinate Reference System (crs) and resolution are the same
-# # nbr_pre
-# # nbr_post
-# 
-# # > nbr_pre
-# # class      : RasterLayer
-# # dimensions : 7711, 7551, 58225761  (nrow, ncol, ncell)
-# # resolution : 30, 30  (x, y)
-# # extent     : 619785, 846315, 1483185, 1714515  (xmin, xmax, ymin, ymax)
-# # crs        : +proj=utm +zone=15 +datum=WGS84 +units=m +no_defs
-# # source     : memory
-# # names      : layer
-# # values     : -741.8728, 444.0148  (min, max)
-# #
-# # > nbr_post
-# # class      : RasterLayer
-# # dimensions : 7701, 7541, 58073241  (nrow, ncol, ncell)
-# # resolution : 30, 30  (x, y)
-# # extent     : 620385, 846615, 1483485, 1714515  (xmin, xmax, ymin, ymax)
-# # crs        : +proj=utm +zone=15 +datum=WGS84 +units=m +no_defs
-# # source     : memory
-# # names      : layer
-# # values     : -737.1108, 632.0712  (min, max)
-# #
-# # Both raster data frames have the same crs (UTM and WGS84)
-# # Both raster data frames have 30x30 resolution
-# # However, they have different extents nbr_pre (619785, 846315, 1483185, 1714515) and nbr_post (620385, 846615, 1483485, 1714515)
-# #
-# # ONLY DO THIS STEP IF YOU RECIVE ERRORS
-# # OTHERWISE, SKIP TO NEXT SECTION
-# #
-# # Use the resample FN to match the extents (Substitute the 'method' argument with 'bilinear' OR 'ngb')
-# # resample_nbr_post <- resample(nbr_post, nbr_pre, method='ngb')
-# 
-# # The mask FN can be used followed by the crop FN to crop the raster to a specified extent
-# # masked_nbr_post <- mask(nbr_post, nbr_pre)
-# # cropped_nbr_post <- crop(masked_nbr_post, nbr_pre)
-# #
-# ###########################################################################################
-# #
-# # Combine the two rasters into one composite image
-# nbr_stack <- c(nbr_pre, nbr_post)
-# names(nbr_stack) <- c("Prefire NBR", "Postfire NBR")
-# nbr_stack_df <- rasterdf(nbr_stack)
-# 
-# # Plotting the dNBR raster
-# ggplot(nbr_stack_df) +
-#   geom_raster(aes(x = x,
-#                   y = y,
-#                   fill = value)) +
-#   scale_fill_gradient(name = "NBR",
-#                       low = "lightyellow",
-#                       high = "darkgreen") +
-#   coord_sf(expand = FALSE) +
-#   annotation_scale(location = 'bl') +
-#   facet_wrap(facets = vars(variable),
-#              ncol = 1) +
-#   theme_void()
+## Calculate Normalized Burn Ratio and Burn Severity (dNBR)
+
+```{r}
+
+# Calculating the Delta Normalized Burn Ratio Index 
+nbr_pre <- 1000 * (pre_fires[[1]] - pre_fires[[2]]) / 
+  (pre_fires[[1]] + pre_fires[[2]])
+
+nbr_post <- 1000 * (post_fires[[1]] - post_fires[[2]]) / 
+  (post_fires[[1]] + post_fires[[2]])
+
+# Attempt to calculate the Differenced Normalized Burn Ratio Index
+dnbr <- (nbr_pre)-(nbr_post)
+
+```
+
+## Display Pre and Post Fires
+
+```{r}
+
+nbr_stack <- c(nbr_pre, nbr_post)
+names(nbr_stack) <- c("Pre-fire NBR", "Post-fire NBR")
+nbr_stack_df <- rasterdf(nbr_stack)
+
+ggplot(nbr_stack_df) +
+  geom_raster(aes(x = x, 
+                  y = y, 
+                  fill = value)) + 
+  scale_fill_gradient(name = "NBR", 
+                       low = "lightyellow", 
+                       high = "darkgreen") +
+  coord_sf(expand = FALSE) +
+  annotation_scale(location = 'bl') +
+  facet_wrap(facets = vars(variable), 
+             ncol = 1) +
+  theme_void()
+
+```
+
+## Display dNBR
+
+```{r}
+
+dnbr_df <- rasterdf(dnbr)
+
+ggplot(dnbr_df) +
+  geom_raster(aes(x = x, 
+                  y = y, 
+                  fill = value)) + 
+  scale_fill_gradient2(name = "DNBR", 
+                       low = "blue", 
+                       high = "red",
+                       midpoint = 0) +
+  coord_sf(expand = F) +
+  annotation_scale(location = 'bl') +
+  theme_void()
+
+```
+
+## Classify Severity
+
+```{r}
+
+# Classifying the index values into a matrix
+rclas <- matrix(c(-Inf, -970, NA,  # Missing data
+                  -970, -100, 5,   # Increased greenness
+                  -100, 80, 1,     # Unburned
+                  80, 265, 2,      # Low severity
+                  265, 490, 3,     # Moderate severity
+                  490, Inf, 4),    # High severity
+                ncol = 3, byrow = T)
+
+severity <- classify(dnbr, rclas)
+
+SCcolors = c("darkgreen", 
+             "cyan3", 
+             "yellow", 
+             "red", 
+             "green")
+SCnames = c("Unburned", 
+            "Low", 
+            "Moderate", 
+            "High", 
+            "> Green")
+severity_df <- rasterdf(severity)
+
+ggplot(severity_df) +
+  geom_raster(aes(x = x, 
+                  y = y, 
+                  fill = as.character(value))) + 
+  scale_fill_manual(name = "Severity Class",
+                    values = SCcolors,
+                    labels = SCnames,
+                    na.translate = FALSE) +
+  annotation_scale(location = 'bl') +
+  coord_fixed(expand = F) +
+  theme_void()
 
 ```
