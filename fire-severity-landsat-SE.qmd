@@ -80,20 +80,13 @@ library(dplyr)
 library(terra)
 library(ggspatial)
 library(sf)
+library(stars)
 library(raster)
 library(reticulate)
 library(leaflet)
 library(leafem)
-# library(cowplot)
-# library(mgcv)
-# library(visreg)
-# library(rgeos)
-# library(maptools)
-# library(rgdal)
-# library(rasterVis)
-# library(RCurl)
-# library(devtools)
-# library(rlandsat8)
+library(purrr)
+library(stringr)
 
 here::i_am("fire-severity-landsat-SE.qmd")
 
@@ -103,130 +96,86 @@ here::i_am("fire-severity-landsat-SE.qmd")
 # necessary to have this source code to complete analysis
 # A function will appear in your global environment if this code ran properly ('rasterdf')
 source(here::here("utils/rasterdf.R"))
+# source_python(here::here("utils/download-landsat-imagery.py"))
 source_python(here::here("utils/download-landsat-imagery.py"))
+
 
 ```
 
 ## Importing Landsat Files
 
 ```{r}
+#| output: false
 
-# #############################################################################################
-# #                                                                                           #
-# #    PART ONE: IMPORTING LANDSAT .TIF FILES DOWNLOADED FROM USGS EARTHEXPLORER DATABASE     #
-# #                                               &                                           #
-# #                CREATE COMPOSITE IMAGES FOR DNBR INDEX CALCULATIONS AND PLOTTING           #
-# #                                                                                           #
-# #############################################################################################
-# 
-# # Create an object in the environment for files from the pre-fire satellite imagery
-# # Creating a separate file directory for pre-fire and post-fire files will be useful
-# # This portion will demo the process with two file directories with the prefire and postfire files separated prior to importing to R
-# # See below (line 85) to learn how to subset using glob2rx Fn
-# #
-# # Using list.file FN to query file directory and create obj. in global environment (all_prefire + all_postfire)
-guat_city <- list.files("data",
-                        full.names = TRUE)
-# all_postfire <- list.files("C:\\Users\\joel8\\Dropbox\\My PC (LAPTOP-8RB752PH)\\Documents\\Guat_Fire_Proj\\Feb 26 Rasters",
-#                            full.names = TRUE)
-# 
-# # Two objects will appear in the global environment and should be a vector with at least 7 characters
-# ##################################################################################################################
-# #
-# # Use the glob2rx() Fn to create argument using characters in file path name. Modify the logic to meet your needs
-# #
-# # landsat_file_directory <- list.files('file path containing all Landsat data',
-# #
-# #        pattern = glob2rx("B*.tif$"),      # files selected must meet both conditions
-# #        full.names = TRUE)                 # * indicates the character can be anything
-# #                                           # use '$' at the end to get all files that END WITH
-# #
-# ###################################################################################################################
-# 
-# # The files only show one band of the electromagnetic spectrum (red band, blue band, green band etc.)
-# # We can plot each individual band or multiple bands using the raster FN and the plot FN
-# #
-# # Select one band to plot to demonstrate how each individual band looks
-# all_prefire [7]
-# 
-# # For example, the Shortwave-Infrared 2 (Band 7) from Landsat 8
-# #
-# # Use the raster FN to convert the file to a raster and plot it
-guat_city_bandtwo <- raster(guat_city[1])
-plot(guat_city_bandtwo,
-     main = 'Prefire Band Six, Central Guatemla',
-     col = gray(0:100 / 100))
+# GEE project title
+project <- "ee-samettenborough"
 
-```
-```{r}
-# 
-# ######################################################################################################################
-# 
-# # Stacking all the band rasters will create a composite image of all 7 rasters
-# # Using the stack Fn to stack the layers on top of each other, creating a composite image with 7 bands
-# # Converts the 'vector' object (all_prefire + all_postfire) to a 'RasterLayer' data object (prefire_stack_all +postfire_stack_all)
-# #
-# # Stacking the bands
-guat_city_stack <- stack(guat_city)
-# postfire_stack_all <- stack(all_postfire)
-# 
-# # Turning the stack into a brick
-guat_city_brick <- brick(guat_city_stack)
-# postfire_brick_all <- brick(postfire_stack_all)
-# 
-# # Take a few moments to let the FNs run. They may take 2-5 minutes to run
-# # View brick attributes to check for errors or other important metadata
-# prefire_brick_all
-# postfire_brick_all
-# 
-# ##################################################################################################################
-# 
-# # Each raster is now stacked into one raster sandwich with seven bands
-# # Plot each individual band from prefire and postfire brick
-plot(guat_city_brick,
-     col = gray(20:100 / 100))
+# fire 1 coordinates
+fire_1 <- list(-91.253, 16.8194, -89.4018, 18.2112)
 
-```
-```{r}
-# 
-# plot(postfire_brick_all,
-#      col = gray(20:100 / 100))
-# 
-# # Clean up file naming conventions to make more aesthetic titles
-# # Print file names to create logic for subsetting
-# names(prefire_brick_all)
-# 
-# # Select all files using a character argument 'starting with'
-# names(prefire_brick_all) <- gsub(pattern ='LC08_L2SP_020050_20240202_20240208_02_T1_SR_',replacement =" ",names(prefire_brick_all))
-# plot(prefire_brick_all,
-#      col = gray(20:100 / 100))
-# 
-# # Repeating the steps for the postfire elements
-# names(postfire_brick_all)
-# 
-# # Select all files starting with 'character string'
-# names(postfire_brick_all) <- gsub(pattern = 'LC09_L2SP_020050_20240226_20240228_02_T1_SR_',replacement = ' ', names(postfire_brick_all))
-# plot(guat_city_brick,
-#      col = gray(20:100 / 100))
-# 
-# #########################################################################################################
-# 
-# # Specify which bands to plot and create composite color images (RGB)
-# # Plot RGB Composite Band Images using bands 4,3,2
-par(col.axis = 'white', col.lab = 'white', tck = 0)
-plotRGB(guat_city_brick,
-        r= 3, g= 2, b= 1,
-        stretch = 'lin',
-        axes = TRUE,
-        main = 'Prefire RGB Composite Image, Bands 4,3,2')
+# pre fire start and end date search window
+pre_start_date <- "2024-01-01"
+pre_end_date <- "2024-03-01"
+
+# output folder
+out_dir <- "data/pre"
+
+# # uncomment this section to re-download the images
+# process_aoi(
+#     project,
+#     fire_1,
+#     pre_start_date,
+#     pre_end_date,
+#     out_dir,
+#     prefix="landsat_pre_",
+# )
+
+# pre fire start and end date search window
+post_start_date <- "2024-08-01"
+post_end_date <- "2024-10-01"
+
+# output folder
+out_dir <- "data/post"
+
+# # uncomment this section to re-download the images
+process_aoi(
+    project,
+    fire_1,
+    post_start_date,
+    post_end_date,
+    out_dir,
+    filter_lim = 50,
+    prefix="landsat_post_",
+)
 
 ```
 
+## Visualize Pre and Post Images
+
 ```{r}
 
-leaflet() |> 
-    addTiles(group = "OpenStreetMap") %>%
-    addRasterRGB(guat_city_brick, 3,2,1) 
+pre_fire_files <- list.files("data/pre",
+                              full.names = TRUE)
+
+pre_fires <- pre_fire_files |>
+  map(rast) |>
+  reduce(mosaic)
+
+# Plot the merged raster
+plot(pre_fires)
+
+```
+```{r}
+
+post_fire_files <- list.files("data/post",
+                              full.names = TRUE)
+
+post_fires <- post_fire_files |>
+  map(rast) |>
+  reduce(mosaic)
+
+# Plot the merged raster
+plot(post_fires)
 
 ```
 # box(col = 'white')
