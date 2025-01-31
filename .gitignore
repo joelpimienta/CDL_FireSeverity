@@ -3,7 +3,11 @@
 .RData
 .Ruserdata
 
-data/
+data/feb_post_fire
+data/feb_pre_fire
+
+data/pre/*.xml
+data/post/*.xml
 
 .ipynb_checkpoints/
 

@@ -1,5 +1,7 @@
 import ee
 import geemap
+import geopandas as gpd
+import json
 
 # create a bounding box given a set of lat/long values
 #
@@ -9,6 +11,34 @@ import geemap
 def create_bounding_box(coordinates):
     # https://stackoverflow.com/questions/7745952/how-to-expand-a-list-to-function-arguments-in-python
     region = ee.Geometry.BBox(*coordinates)
+    return region
+  
+# create a geometry shape given a filepath pointing to a local shapefile
+#
+# Parameters:
+#   geometry (string): a filepath pointing to a locally stored shapefile
+def create_geometry(geometry):
+    
+    # load shapefile
+    gdf = gpd.read_file(geometry)
+
+    # Ensure the CRS is WGS84 (EPSG:4326) for compatibility with Earth Engine
+    if gdf.crs is not None and gdf.crs.to_epsg() != 4326:
+        gdf = gdf.to_crs(epsg=4326)
+    
+    # Convert the geometry to GeoJSON format
+    # Convert to proper JSON structure
+    geojson = json.loads(gdf.to_json())
+    
+    # Extract geometries from the GeoJSON
+    features = geojson["features"]
+    
+    # If the shapefile has multiple geometries, use a FeatureCollection
+    if len(features) > 1:
+        region = ee.FeatureCollection(features)
+    else:
+        region = ee.Geometry(features[0]["geometry"])
+    
     return region
   
 # create a composite image of a region from a set of images in a given time
@@ -30,7 +60,8 @@ def create_composite_image(start_date, end_date, region, filter_lim):
     
     # Create a cloud-free composite using the median reducer
     composite = collection.median() \
-        .select(['SR_B5', 'SR_B7'])
+        .select(['SR_B5', 'SR_B7']) \
+        .clip(region)
     
     return composite
   
@@ -89,10 +120,11 @@ def create_fishnet_and_download(
 #   scale (int): Resolution in meters
 def process_aoi(
     project,
-    coordinates,
     start_date,
     end_date,
     out_dir,
+    coordinates=None,
+    geometry=None,
     filter_lim=20,
     rows=2,
     cols=2,
@@ -105,7 +137,11 @@ def process_aoi(
   ee.Authenticate()
   ee.Initialize(project = project)
   
-  region = create_bounding_box(coordinates)
+  if coordinates is not None:
+    region = create_bounding_box(coordinates)
+  elif geometry is not None:
+    region = create_geometry(geometry)
+  
   composite = create_composite_image(start_date, end_date, region, filter_lim)
   create_fishnet_and_download(
     composite,

@@ -111,6 +111,10 @@ project <- "ee-samettenborough"
 # fire 1 coordinates
 fire_1 <- list(-91.253, 16.8194, -89.4018, 18.2112)
 
+# these two fires started end of may and last measurements were in end of july
+aoi_03 <- here::here("data/areas-of-interest/EMSR727_AOI03_BLP_PRODUCT_areaOfInterestA_v1.shp")
+aoi_05 <- here::here("data/areas-of-interest/EMSR727_AOI05_BLP_PRODUCT_areaOfInterestA_v1.shp")
+
 # pre fire start and end date search window
 pre_start_date <- "2024-01-01"
 pre_end_date <- "2024-03-01"
@@ -121,16 +125,17 @@ out_dir <- "data/pre"
 # # uncomment this section to re-download the images
 # process_aoi(
 #     project,
-#     fire_1,
 #     pre_start_date,
 #     pre_end_date,
 #     out_dir,
-#     prefix="landsat_pre_",
+#     geometry = aoi_05,
+#     prefix="aoi_05_landsat_pre_",
 # )
 
+
 # pre fire start and end date search window
-post_start_date <- "2024-08-01"
-post_end_date <- "2024-10-01"
+post_start_date <- "2024-04-01"
+post_end_date <- "2024-08-01"
 
 # output folder
 out_dir <- "data/post"
@@ -138,12 +143,12 @@ out_dir <- "data/post"
 # # uncomment this section to re-download the images
 # process_aoi(
 #     project,
-#     fire_1,
 #     post_start_date,
 #     post_end_date,
 #     out_dir,
+#     geometry = aoi_05,
 #     filter_lim = 30,
-#     prefix="landsat_post_",
+#     prefix="aoi_05_landsat_post_",
 # )
 
 ```
@@ -152,8 +157,9 @@ out_dir <- "data/post"
 
 ```{r}
 
-pre_fire_files <- list.files("data/pre",
-                              full.names = TRUE)
+pre_fire_files <- list.files("data/pre/",
+                             pattern = "aoi_05.*",
+                             full.names = TRUE)
 
 pre_fires <- pre_fire_files |>
   map(rast) |>
@@ -167,10 +173,20 @@ plotRGB(pre_fires,
         axes = TRUE,
         main = 'Prefire RGB Composite Image, Bands 5,7')
 
+# # Create leaflet map
+# leaflet() %>%
+#   addTiles() %>%
+#   addRasterImage(
+#     pre_fires, 
+#     opacity = 0.7,
+#     group = "Pre-Fire RGB Composite"
+#   )
+
 ```
 ```{r}
 
 post_fire_files <- list.files("data/post",
+                              pattern = "aoi_05.*",
                               full.names = TRUE)
 
 post_fires <- post_fire_files |>
@@ -282,5 +298,38 @@ ggplot(severity_df) +
   annotation_scale(location = 'bl') +
   coord_fixed(expand = F) +
   theme_void()
+
+```
+
+```{r}
+
+# Define severity classification matrix
+rclas <- matrix(c(-Inf, -970, NA,   # Missing data
+                  -970, -100, 5,     # Increased greenness
+                  -100, 80, 1,       # Unburned
+                  80, 265, 2,        # Low severity
+                  265, 490, 3,       # Moderate severity
+                  490, Inf, 4),      # High severity
+                ncol = 3, byrow = TRUE)
+
+# Color palette 
+severity_colors <- c("darkgreen", "darkcyan", "yellow", "red", "green")
+severity_names <- c("Unburned", "Low", "Moderate", "High", "> Green")
+
+# Create leaflet map
+leaflet() %>%
+  addTiles() %>%
+  addRasterImage(
+    severity, 
+    colors = severity_colors,
+    opacity = 0.7,
+    group = "Severity Classes"
+  ) %>%
+  addLegend(
+    position = "bottomright",
+    colors = severity_colors,
+    labels = severity_names,
+    title = "Severity Class"
+  )
 
 ```
