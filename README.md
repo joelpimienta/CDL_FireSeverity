@@ -66,13 +66,13 @@ install.packages("renv")
 Now we need to connect R and Python using `reticulate`. In an R console window, run the following command, replacing the `<path-to-python>` with the path to your virtual environment Python install.
 
 ```
-reticulate::use_virtualenv("<path>/<to>/<your>/python.exe", required = TRUE)
+reticulate::use_virtualenv("<path>/<to>/<your>/<venv>", required = TRUE)
 ```
 
 For example, on my machine, I ran the command:
 
 ```
-"C:/Users/Documents/CDL_FireSeverity/venv/Scripts/python.exe", required = TRUE)
+reticulate::use_virtualenv("C:/Users/Documents/CDL_FireSeverity/venv", required = TRUE)
 ```
 
 To test this was successful, run the following command in an R console:
@@ -82,14 +82,6 @@ reticulate::py_config()
 ```
 
 If you see the path to your virtual environment python, you have successfully connected R and Python!
-
-## Regular Startup
-
-Once you have setup the project following the instructions above once, the following steps will need to be taken each time you want to start up and use this project:
-
-1. Open the `.Rproj` file
-2. Activate your Python virtual environment ([see instructions above](#activate-virtual-environment))
-
 
 ## Setting Up Google Earth Engine
 
@@ -107,6 +99,13 @@ To connect your local version of this project to Google Earth Engine, run the fo
   ee.Authenticate()
   ee.Initialize(project)
 ```
+
+## Regular Startup
+
+Once you have setup the project following the instructions above once, the following steps will need to be taken each time you want to start up and use this project:
+
+1. Open the `.Rproj` file
+2. In a command prompt/terminal window, activate your Python virtual environment ([see instructions above](#activate-virtual-environment))
 
 ## Resources
 

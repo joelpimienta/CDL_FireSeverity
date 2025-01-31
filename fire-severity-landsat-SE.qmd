@@ -97,7 +97,6 @@ source(here::here("utils/rasterdf.R"))
 # source_python(here::here("utils/download-landsat-imagery.py"))
 source_python(here::here("utils/download-landsat-imagery.py"))
 
-
 ```
 
 ## Importing Landsat Files
@@ -122,15 +121,15 @@ pre_end_date <- "2024-03-01"
 # output folder
 out_dir <- "data/pre"
 
-# # uncomment this section to re-download the images
-# process_aoi(
-#     project,
-#     pre_start_date,
-#     pre_end_date,
-#     out_dir,
-#     geometry = aoi_05,
-#     prefix="aoi_05_landsat_pre_",
-# )
+# uncomment this section to re-download the images
+process_aoi(
+    project,
+    pre_start_date,
+    pre_end_date,
+    out_dir,
+    geometry = aoi_05,
+    prefix="aoi_05_landsat_pre_SR5_SR7_",
+)
 
 
 # pre fire start and end date search window
@@ -141,15 +140,15 @@ post_end_date <- "2024-08-01"
 out_dir <- "data/post"
 
 # # uncomment this section to re-download the images
-# process_aoi(
-#     project,
-#     post_start_date,
-#     post_end_date,
-#     out_dir,
-#     geometry = aoi_05,
-#     filter_lim = 30,
-#     prefix="aoi_05_landsat_post_",
-# )
+process_aoi(
+    project,
+    post_start_date,
+    post_end_date,
+    out_dir,
+    geometry = aoi_05,
+    filter_lim = 30,
+    prefix="aoi_05_landsat_post_SR5_SR7_",
+)
 
 ```
 

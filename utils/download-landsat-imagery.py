@@ -50,7 +50,10 @@ def create_geometry(geometry):
 #   end_date (str): date as a string in yyyy-mm-dd format representing the end
 #     of the time window to search for images within
 #   region (ee.BBox): the region created from the function above
-def create_composite_image(start_date, end_date, region, filter_lim):
+#   filter_lim (int): the limit for cloud cover percentage to keep, e.g., 20 
+#     will keep anything less than 20% cloudy
+#   bands (list): a list representing the desired bands
+def create_composite_image(start_date, end_date, region, filter_lim, bands):
   
     # Load the LANDSAT/LC08/C02/T1_L2 collection and filter it
     collection = ee.ImageCollection('LANDSAT/LC08/C02/T1_L2') \
@@ -60,7 +63,7 @@ def create_composite_image(start_date, end_date, region, filter_lim):
     
     # Create a cloud-free composite using the median reducer
     composite = collection.median() \
-        .select(['SR_B5', 'SR_B7']) \
+        .select(bands) \
         .clip(region)
     
     return composite
@@ -118,6 +121,7 @@ def create_fishnet_and_download(
 #   prefix (str): Prefix for output filenames
 #   crs (str): Coordinate reference system
 #   scale (int): Resolution in meters
+#   bands (list): a list representing the desired bands
 def process_aoi(
     project,
     start_date,
@@ -130,7 +134,8 @@ def process_aoi(
     cols=2,
     prefix="landsat_",
     crs="EPSG:3857",
-    scale=30
+    scale=30,
+    bands=['SR_B5', 'SR_B7']
     ):
     
     # Initialize Earth Engine
@@ -142,7 +147,7 @@ def process_aoi(
   elif geometry is not None:
     region = create_geometry(geometry)
   
-  composite = create_composite_image(start_date, end_date, region, filter_lim)
+  composite = create_composite_image(start_date, end_date, region, filter_lim, bands)
   create_fishnet_and_download(
     composite,
     region, 
