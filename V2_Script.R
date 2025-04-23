@@ -6,6 +6,14 @@
 
 # I will refine this script and insert more comments after the code works
 
+#####
+#
+# I personally would remove the install.packages lines from this file. To me this is
+# something that lives in the README file under a setup instructions section. That's
+# a personal preference though. If you choose to keep them in here, you might comment
+# them out and leave a note to uncomment if they need to install these packages
+#
+#####
 
 # Installing packages 
 install.packages("maptools")
@@ -31,6 +39,14 @@ install.packages("here")
 install_url("https://github.com/Terradue/rLandsat8/releases/download/v0.1-SNAPSHOT/rLandsat8_0.1.0.tar.gz") 
 
 
+
+#####
+#
+# one thing as you work on this, check if you're still using all of these packages. If you're no longer
+# using a package, try and remove it from the list. It just keeps it cleaner. Also I have a thing against
+# importing tidyverse but it's fine to do that.
+#
+#####
 # Loading libraries for analysis
 library(tidyverse)
 library(terra)
@@ -60,6 +76,12 @@ source(here('rasterdf.R'))
 options(stringsAsFactors = FALSE)
 
 # Using the 'here' fn to set relative file path names to increase project reproducibility
+#####
+#
+# change the name of these to be more indicative of what they are. In this case they are file
+# paths so they should be called start_feb_fp and end_feb_fp or something like that
+#
+#####
 start_feb <- here('feb_pre_fire')
 end_feb <- here('feb_post_fire')
 
@@ -69,6 +91,13 @@ pre_fire <- list.files(start_feb, full.names = TRUE)
 post_fire <- list.files(end_feb, full.names = TRUE)
 
 # Check if directories exist - suggestion from google gemini AI to incorporate checks into the process
+#####
+#
+# this should happen above pre_fire and post_fire as those are going to cause an error if the 
+# file's don't exist. Also, for me, I'm mixed on these types of checks because if those folders
+# don't exist, it's going to throw an error anyway. Up to you if you want to keep them.
+#
+#####
 if (!dir.exists(here("feb_pre_fire"))) {
   stop("Directory 'feb_pre_fire' does not exist.")
 }
