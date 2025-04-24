@@ -15,25 +15,33 @@
 #
 #####
 
-# Installing packages 
-install.packages("maptools")
-install.packages("rgdal")
-install.packages("raster")
-install.packages("rgeos")
-install.packages("rasterVis")
-install.packages("Rcurl")
-install.packages("devtools")
-install.packages("terra")
-install.packages("tidyverse")
-install.packages("ggspatial")
-install.packages("sf")
-install.packages("cowplot")
-install.packages('mgcv')
-install.packages("visreg")
-install.packages("utils")
-install.packages("Rtools")
-install.packages("here")
+# # Installing packages 
+# install.packages("maptools")
+# install.packages("rgdal")
+# install.packages("raster")
+# install.packages("rgeos")
+# install.packages("rasterVis")
+# install.packages("Rcurl")
+# install.packages("devtools")
+# install.packages("terra")
+# install.packages("tidyverse")
+# install.packages("ggspatial")
+# install.packages("sf")
+# install.packages("cowplot")
+# install.packages('mgcv')
+# install.packages("visreg")
+# install.packages("utils")
+# install.packages("Rtools")
+# install.packages("here")
 
+#####
+#
+# I personally would remove this section. This package (found here: https://github.com/Terradue/rLandsat8)
+# does not appear to be maintained anymore. The last commit was 8 years ago. I don't think we're using
+# anything from it either, but if you did need functionality from it, you might try searching for a
+# similar package or looking for its successor
+#
+#####
 # From the U.N. Spider tutorial
 # I was not successful in running it
 install_url("https://github.com/Terradue/rLandsat8/releases/download/v0.1-SNAPSHOT/rLandsat8_0.1.0.tar.gz") 
@@ -71,7 +79,7 @@ here::i_am("V2_Script.R")
 
 # Loading source code from Ch. 11 tutorial
 # EXTREMELY IMPORTANT that you have this source code
-source(here('rasterdf.R'))
+source(here('utils/rasterdf.R'))
 # From Ch. 11 tutorial - credited in 1st version of script
 options(stringsAsFactors = FALSE)
 
@@ -105,6 +113,11 @@ if (!dir.exists(here("feb_post_fire"))) {
   stop("Directory 'feb_post_fire' does not exist.")
 }
 
+#####
+#
+# you can get rid of this unless you want for record keeping (through line 128)
+#
+#####
 # 79-85 are relics, the raster package doesn't exist anymore
 # Skip these, and use 'terra' package FN 'rast' instead
 # pre_stack <- stack(pre_fire)
@@ -118,6 +131,16 @@ if (!dir.exists(here("feb_post_fire"))) {
 pre_stack <- rast(pre_fire)
 post_stack <- rast(post_fire)
 
+
+#####
+#
+# if you want someone to run this code line by line, I would keep this, but if you are
+# intending for them to run it top to bottom, you might remove this section (through line 169). 
+# It will generate outputs possibly before they are needed and could cause confusion. If you
+# eventually turn this into a quarto doc, I'd keep it as the outputs would be in the context
+# of this section of code.
+#
+#####
 # Plotting Rasters as a checkpoint
 plot(pre_stack,
      col = gray(20:100 / 100))
@@ -166,9 +189,9 @@ nbr_stack_df <- rasterdf(nbr_stack)
 
 # Plotting the fire severity index of pre & post nbr values as a checkpoint
 ggplot(nbr_stack_df) +
-geom_raster(aes(x = x, 
-                y = y, 
-                fill = value)) + 
+  geom_raster(aes(x = x, 
+                  y = y, 
+                  fill = value)) + 
   scale_fill_gradient(name = "NBR", 
                       low = "lightyellow", 
                       high = "darkgreen") +
