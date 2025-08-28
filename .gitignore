@@ -2,6 +2,7 @@
 .Rhistory
 .RData
 .Ruserdata
+.Rprofile
 
 data/feb_post_fire
 data/feb_pre_fire
