@@ -12,6 +12,13 @@ editor: source
 warning: false
 error: false
 message: false
+params:
+    ee_project: "ee-samettenborough"
+    aoi_fp: "data/areas-of-interest/EMSR727_AOI03_BLP_PRODUCT_areaOfInterestA_v1.shp"
+    pre_start_date: "2024-01-01"
+    pre_end_date: "2024-03-01"
+    post_start_date: "2024-04-01"
+    post_end_date: "2024-08-01"
 format:
   html:
     theme: flatly
@@ -41,34 +48,11 @@ The code in this analysis was adapted from the following sources below:
 
 Conservation Data Lab, Randy Swaty, Sam Ettenborough
 
-```{r}
-#| label: credits
-#| include: false
-
-####################################################################################################################
-#
-# Tutorial for calculating and plotting dNBR Fire Severity Index using Landsat 8/9 satellite imagery
-# Adapted by: E. Joel Pimienta
-#
-# Contributors: Conservation Data Lab, Randy Swaty, Sam Ettenborough
-#
-# *This tutorial assumes you have referenced data downloaded and in a known file directory*
-#                                  OR
-# *You have recently downloaded data from USGS EarthExplorer Data base following tutorial by J. Pimienta*
-#
-# USGS EarthExplorer Database: https://earthexplorer.usgs.gov/
-#
-# Adapted from tutorial and book below
-# Link to book https://bookdown.org/mcwimberly/gdswr-book/application---wildfire-severity-analysis.html
-# Link to tutorial https://www.earthdatascience.org/courses/earth-analytics/multispectral-remote-sensing-data/landsat-data-in-r-geotiff/
-
-###################################################################################################################
-
-```
-
 ## Setup
 
-Please review the `README.md` document for installation and setup instructions.
+*This report assumes you have already run through the setup instructions in the `README.md` file. If you have not, please review those instructions before attempting to render this file.*
+
+To run this file, please adjust the 
 
 ```{r}
 #| label: setup
@@ -86,7 +70,7 @@ library(leafem)
 library(purrr)
 library(stringr)
 
-here::i_am("fire-severity-landsat-SE.qmd")
+here::i_am("fire-severity-landsat.qmd")
 
 # load helper functions
 # from tutorial
@@ -97,6 +81,20 @@ source(here::here("utils/rasterdf.R"))
 # source_python(here::here("utils/download-landsat-imagery.py"))
 source_python(here::here("utils/download-landsat-imagery.py"))
 
+# GEE project title
+project <- params$ee_project
+
+# area of interest filepath
+aoi <- here::here(params$aoi_fp)
+
+# pre fire start and end search date window
+pre_start_date <- params$pre_start_date
+pre_end_date <- params$pre_end_date
+
+# post fire start and end search date window
+post_start_date <- params$post_start_date
+post_end_date <- params$post_end_date
+
 ```
 
 ## Importing Landsat Files
@@ -104,50 +102,53 @@ source_python(here::here("utils/download-landsat-imagery.py"))
 ```{r}
 #| output: false
 
-# GEE project title
-project <- "ee-samettenborough"
+####### below are some aoi's you can uncomment to see how they will run through
+####### this process - they are for demo purposes only
 
-# fire 1 coordinates
-fire_1 <- list(-91.253, 16.8194, -89.4018, 18.2112)
+# # fire 1 coordinates
+# fire_1 <- list(-91.253, 16.8194, -89.4018, 18.2112)
+# 
+# # these two fires started end of may and last measurements were in end of july
+# aoi_03 <- here::here("data/areas-of-interest/EMSR727_AOI03_BLP_PRODUCT_areaOfInterestA_v1.shp")
+# aoi_05 <- here::here("data/areas-of-interest/EMSR727_AOI05_BLP_PRODUCT_areaOfInterestA_v1.shp")
 
-# these two fires started end of may and last measurements were in end of july
-aoi_03 <- here::here("data/areas-of-interest/EMSR727_AOI03_BLP_PRODUCT_areaOfInterestA_v1.shp")
-aoi_05 <- here::here("data/areas-of-interest/EMSR727_AOI05_BLP_PRODUCT_areaOfInterestA_v1.shp")
+# use the aoi file name to make a prefix for downloaded images
+pre_output_prefix <- aoi|>
+  str_remove(".*/") |>
+  str_remove("\\.shp$")
 
-# pre fire start and end date search window
-pre_start_date <- "2024-01-01"
-pre_end_date <- "2024-03-01"
+pre_output_prefix <- paste(pre_output_prefix, "landsat_pre_SR5_SR7_",
+                           sep = "_")
 
-# output folder
-out_dir <- "data/pre"
-
+######### pre burn image download
 # # uncomment this section to re-download the images
-# process_aoi(
-#     project,
-#     pre_start_date,
-#     pre_end_date,
-#     out_dir,
-#     geometry = aoi_05,
-#     prefix="aoi_05_landsat_pre_SR5_SR7_",
-# )
+process_aoi(
+    project,
+    pre_start_date,
+    pre_end_date,
+    out_dir = "data/pre",
+    geometry = aoi,
+    prefix=pre_output_prefix,
+)
 
+# use the aoi file name to make a prefix for downloaded images
+post_output_prefix <- aoi|>
+  str_remove(".*/") |>
+  str_remove("\\.shp$")
 
-# pre fire start and end date search window
-post_start_date <- "2024-04-01"
-post_end_date <- "2024-08-01"
+post_output_prefix <- paste(post_output_prefix, "landsat_post_SR5_SR7_",
+                            sep = "_")
 
-# output folder
-out_dir <- "data/post"
-
+######### post burn image download
 # # uncomment this section to re-download the images
 # process_aoi(
 #     project,
 #     post_start_date,
 #     post_end_date,
-#     out_dir,
-#     geometry = aoi_05,
+#     out_dir = "data/post",
+#     geometry = aoi,
 #     filter_lim = 30,
-#     prefix="aoi_05_landsat_post_SR5_SR7_",
+#     prefix=post_output_prefix,
 # )
 
 ```
@@ -157,7 +158,7 @@ out_dir <- "data/post"
 ```{r}
 
 pre_fire_files <- list.files("data/pre/",
-                             pattern = "aoi_03_landsat_pre_SR.*",
+                             pattern = pre_output_prefix,
                              full.names = TRUE)
 
 pre_fires <- pre_fire_files |>
@@ -185,7 +186,7 @@ plotRGB(pre_fires,
 ```{r}
 
 post_fire_files <- list.files("data/post",
-                              pattern = "aoi_03_landsat_post_SR.*",
+                              pattern = post_output_prefix,
                               full.names = TRUE)
 
 post_fires <- post_fire_files |>
