@@ -121,15 +121,15 @@ pre_end_date <- "2024-03-01"
 # output folder
 out_dir <- "data/pre"
 
-# uncomment this section to re-download the images
-process_aoi(
-    project,
-    pre_start_date,
-    pre_end_date,
-    out_dir,
-    geometry = aoi_05,
-    prefix="aoi_05_landsat_pre_SR5_SR7_",
-)
+# # uncomment this section to re-download the images
+# process_aoi(
+#     project,
+#     pre_start_date,
+#     pre_end_date,
+#     out_dir,
+#     geometry = aoi_05,
+#     prefix="aoi_05_landsat_pre_SR5_SR7_",
+# )
 
 
 # pre fire start and end date search window
@@ -140,15 +140,15 @@ post_end_date <- "2024-08-01"
 out_dir <- "data/post"
 
 # # uncomment this section to re-download the images
-process_aoi(
-    project,
-    post_start_date,
-    post_end_date,
-    out_dir,
-    geometry = aoi_05,
-    filter_lim = 30,
-    prefix="aoi_05_landsat_post_SR5_SR7_",
-)
+# process_aoi(
+#     project,
+#     post_start_date,
+#     post_end_date,
+#     out_dir,
+#     geometry = aoi_05,
+#     filter_lim = 30,
+#     prefix="aoi_05_landsat_post_SR5_SR7_",
+# )
 
 ```
 
@@ -157,7 +157,7 @@ process_aoi(
 ```{r}
 
 pre_fire_files <- list.files("data/pre/",
-                             pattern = "aoi_05.*",
+                             pattern = "aoi_03_landsat_pre_SR.*",
                              full.names = TRUE)
 
 pre_fires <- pre_fire_files |>
@@ -185,7 +185,7 @@ plotRGB(pre_fires,
 ```{r}
 
 post_fire_files <- list.files("data/post",
-                              pattern = "aoi_05.*",
+                              pattern = "aoi_03_landsat_post_SR.*",
                               full.names = TRUE)
 
 post_fires <- post_fire_files |>
@@ -274,16 +274,17 @@ rclas <- matrix(c(-Inf, -970, NA,  # Missing data
 
 severity <- classify(dnbr, rclas)
 
-SCcolors = c("darkgreen", 
-             "cyan3", 
-             "yellow", 
-             "red", 
-             "green")
+SCcolors = c("#008080", 
+             "#5f9ea0", 
+             "#e0e0e0", 
+             "#a0522d", 
+             "#8b0000")
 SCnames = c("Unburned", 
             "Low", 
             "Moderate", 
             "High", 
             "> Green")
+
 severity_df <- rasterdf(severity)
 
 ggplot(severity_df) +
@@ -302,24 +303,85 @@ ggplot(severity_df) +
 
 ```{r}
 
-# Define severity classification matrix
-rclas <- matrix(c(-Inf, -970, NA,   # Missing data
-                  -970, -100, 5,     # Increased greenness
-                  -100, 80, 1,       # Unburned
-                  80, 265, 2,        # Low severity
-                  265, 490, 3,       # Moderate severity
-                  490, Inf, 4),      # High severity
-                ncol = 3, byrow = TRUE)
+severity_counts <- severity_df %>%
+  count(value) %>%
+  mutate(
+    percentage = (n / sum(n)) * 100,  # Convert counts to percentages
+    value = as.character(value)       # Ensure value is a character for plotting
+  )
 
-# Color palette 
-severity_colors <- c("darkgreen", "darkcyan", "yellow", "red", "green")
-severity_names <- c("Unburned", "Low", "Moderate", "High", "> Green")
+# Create the bar chart showing percentages
+ggplot(severity_counts, aes(x = value, y = percentage, fill = value)) +
+  geom_bar(stat = "identity") +
+  scale_fill_manual(name = "Severity Class", values = SCcolors, labels = SCnames) +
+  labs(x = "Severity Class",
+       y = "Percentage of Pixels",
+       title = "dNBR Percentages by Severity Class",
+       subtitle = "A0103: Paso Caballos") +
+  theme_minimal() +
+  geom_text(aes(label = sprintf("%.1f%%", percentage)),  # Format label to 1 decimal place
+            vjust = 1, size = 5) +
+  theme(
+    plot.title = element_text(hjust = 0.5, size = 18, face = "bold"),  # Center title & increase size
+    axis.title = element_text(size = 14)
+  )
+
+severity_counts <- severity_df %>%
+  count(value) %>%
+  mutate(
+    percentage = (n / sum(n)) * 100,  # Convert counts to percentages
+    value = as.character(value)       # Ensure value is a character for plotting
+  ) |>
+  filter(!is.na(value))
+
+# Create the bar chart showing percentages
+severity_plot <- ggplot(severity_counts, aes(x = value, y = percentage, fill = value)) +
+  geom_bar(stat = "identity") +
+  scale_fill_manual(name = "Severity Class", values = SCcolors, labels = SCnames) +
+  labs(x = "Severity Class",
+       y = "Percentage of Pixels",
+       title = "dNBR Percentages by Severity Class",
+       subtitle = "A0105: Sierra del Lacandon") +
+  theme_minimal() +
+  geom_text(aes(label = sprintf("%.1f%%", percentage)),  # Format label to 1 decimal place
+            vjust = 1, size = 5) +
+  theme(
+    plot.title = element_text(hjust = 0.5, size = 18, face = "bold"),  # Center title & increase size
+    plot.subtitle = element_text(hjust = 0.5, size = 14)
+  )
+
+ggsave("outputs/A0105-dNBR-Percentages-by-Severity-Class.jpg",
+       plot = severity_plot, width = 8, height = 6, dpi = 300)
+```
+
+```{r}
+
+# # Define severity classification matrix
+# rclas <- matrix(c(-Inf, -970, NA,   # Missing data
+#                   -970, -100, 5,     # Increased greenness
+#                   -100, 80, 1,       # Unburned
+#                   80, 265, 2,        # Low severity
+#                   265, 490, 3,       # Moderate severity
+#                   490, Inf, 4),      # High severity
+#                 ncol = 3, byrow = TRUE)
+
+# Color palette
+severity_colors = c("#008080", 
+             "#5f9ea0", 
+             "#e0e0e0", 
+             "#a0522d", 
+             "#8b0000")
+severity_names = c("Unburned", 
+            "Low", 
+            "Moderate", 
+            "High", 
+            "> Green")
 
 # Create leaflet map
 leaflet() %>%
   addTiles() %>%
   addRasterImage(
-    severity, 
+    severity,
     colors = severity_colors,
     opacity = 0.7,
     group = "Severity Classes"
