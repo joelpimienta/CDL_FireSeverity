@@ -1,0 +1,15 @@
+.git
+.gitignore
+__pycache__/
+venv/
+renv/
+.Rproj.user/
+.Rhistory
+.RData
+.quarto/
+*.tif
+*.shp
+*.csv
+*.zip
+data/
+output/
