@@ -1,0 +1,416 @@
+---
+title: Fire Severity Analysis
+subtitle: Fire Severity Analysis in Guatemala Using Landsat 8/9 Imagery
+author: Joel Pimienta
+contributors: Conservation Data Lab, Randy Swaty, Sam Ettenborough
+date: today
+published-title: Last Date Run
+toc: true
+number-sections: true
+highlight-style: pygments
+editor: source
+warning: false
+error: false
+message: false
+params:
+    ee_project: "ee-samettenborough"
+    aoi_fp: "data/areas-of-interest/EMSR727_AOI03_BLP_PRODUCT_areaOfInterestA_v1.shp"
+    pre_start_date: "2024-01-01"
+    pre_end_date: "2024-03-01"
+    post_start_date: "2024-04-01"
+    post_end_date: "2024-08-01"
+    pre_output_prefix: "EMSR727_AOI03_BLP_PRODUCT_areaOfInterestA_v1_landsat_pre_SR5_SR7"
+    post_output_prefix: "EMSR727_AOI03_BLP_PRODUCT_areaOfInterestA_v1_landsat_post_SR5_SR7"
+format:
+  html:
+    theme: flatly
+    code-fold: true
+    code-tools: false
+    embed-resources: true
+    df-print: paged
+---
+
+## Introduction
+
+Tutorial for calculating and plotting dNBR Fire Severity Index using Landsat 8/9 satellite imagery.
+
+### Data Sources
+
+[USGS Earth Explorer](https://earthexplorer.usgs.gov/)
+
+### Sources Referenced
+
+The code in this analysis was adapted from the following sources below:
+
+[Wildfire Severity Analysis](https://bookdown.org/mcwimberly/gdswr-book/application---wildfire-severity-analysis.html)
+
+[Landsat Remote Sensing tif Files in R](https://www.earthdatascience.org/courses/earth-analytics/multispectral-remote-sensing-data/landsat-data-in-r-geotiff/)
+
+### Additional Contributors
+
+Conservation Data Lab, Randy Swaty, Sam Ettenborough
+
+## Setup
+
+*This report assumes you have already run through the setup instructions in the `README.md` file. If you have not, please review those instructions before attempting to render this file.*
+
+To run this file, please adjust the parameters in the YAML front matter. Here's a description of what each parameter:
+
+-   **`ee_project`** *(string)*\
+    \> This parameter represents the name of the Google Earth Engine project created in the setup of this repo.
+
+-   **`aoi_fp`** *(file path)*\
+    \> This parameter represents the filepath of a shapefile of the area of interest. Use this to select different areas to study.
+
+-   **`pre_start_date`** *(date, YYYY-MM-DD)*\
+    \> This parameter represents the start of the search window for Landsat imagery *before* the fire period. Landsat imagery returns to a place about every two weeks so you will need at least a two week window to get an image. Additionally, a single image may be cloudy, so it's recommeneded to choose a window that allows for multiple images.
+
+-   **`pre_end_date`** *(date, YYYY-MM-DD)*\
+    \> This parameter represents the end of the search window for Landsat imagery *before* the fire period. These two parameters combine to make a search window like 1/1/2025 to 4/1/2025 where it will return all images taken of a particular place within that time frame.
+
+-   **`post_start_date`** *(date, YYYY-MM-DD)*\
+    \> This parameter represents the start of the search window for Landsat imagery *after* the fire period.
+
+-   **`post_end_date`** *(date, YYYY-MM-DD)*\
+    \> This parameter represents the end of the search window for Landsat imagery *after* the fire period.
+
+```{r}
+#| label: setup
+#| include: false
+
+# Load all necessary packages for manipulating raster files, calculating dNBR, and plotting rasters
+library(ggplot2)
+library(dplyr)
+library(terra)
+library(ggspatial)
+library(sf)
+library(reticulate)
+library(leaflet)
+library(leafem)
+library(purrr)
+library(stringr)
+
+here::i_am("fire-severity-landsat.qmd")
+
+# load helper functions
+# from tutorial
+# 'rasterdf.R' was the source code provided in Ch. 11 of Geographic Data Science with R
+# necessary to have this source code to complete analysis
+# A function will appear in your global environment if this code ran properly ('rasterdf')
+source(here::here("utils/rasterdf.R"))
+# source_python(here::here("utils/download-landsat-imagery.py"))
+
+# GEE project title
+project <- params$ee_project
+
+# area of interest filepath
+aoi <- here::here(params$aoi_fp)
+
+# pre fire start and end search date window
+pre_start_date <- params$pre_start_date
+pre_end_date <- params$pre_end_date
+
+# post fire start and end search date window
+post_start_date <- params$post_start_date
+post_end_date <- params$post_end_date
+
+pre_output_prefix <- params$pre_output_prefix
+post_output_prefix <- params$post_output_prefix
+
+```
+
+## Importing Landsat Files
+
+```{r}
+#| output: false
+
+# ####### below are some aoi's you can uncomment to see how they will run through
+# ####### this process - they are for demo purposes only
+# 
+# # # fire 1 coordinates
+# # fire_1 <- list(-91.253, 16.8194, -89.4018, 18.2112)
+# # 
+# # # these two fires started end of may and last measurements were in end of july
+# # aoi_03 <- here::here("data/areas-of-interest/EMSR727_AOI03_BLP_PRODUCT_areaOfInterestA_v1.shp")
+# # aoi_05 <- here::here("data/areas-of-interest/EMSR727_AOI05_BLP_PRODUCT_areaOfInterestA_v1.shp")
+# 
+# # use the aoi file name to make a prefix for downloaded images
+# output_prefix <- aoi|>
+#   str_remove(".*/") |>
+#   str_remove("\\.shp$")
+# 
+# pre_output_prefix <- paste(output_prefix, "landsat_pre_SR5_SR7_",
+#                            sep = "_")
+# 
+# post_output_prefix <- paste(output_prefix, "landsat_post_SR5_SR7_",
+#                             sep = "_")
+# 
+# ######### pre burn image download
+# # # uncomment this section to re-download the images
+# process_aoi(
+#     project,
+#     pre_start_date,
+#     pre_end_date,
+#     out_dir = "data/pre",
+#     geometry = aoi,
+#     prefix=pre_output_prefix,
+# )
+# 
+# ######### post burn image download
+# # uncomment this section to re-download the images
+# process_aoi(
+#     project,
+#     post_start_date,
+#     post_end_date,
+#     out_dir = "data/post",
+#     geometry = aoi,
+#     filter_lim = 30,
+#     prefix=post_output_prefix,
+# )
+
+```
+
+## Visualize Pre and Post Images
+
+```{r}
+
+pre_fire_files <- list.files("data/pre/",
+                             pattern = pre_output_prefix,
+                             full.names = TRUE)
+
+pre_fires <- pre_fire_files |>
+  map(rast) |>
+  reduce(mosaic)
+
+# Plotting in RGB to test
+par(col.axis = 'white', col.lab = 'white', tck = 0)
+plotRGB(pre_fires,
+        r= 2, g= 1, b= 1,
+        stretch = 'lin',
+        axes = TRUE,
+        main = 'Prefire RGB Composite Image, Bands 5,7')
+
+# # Create leaflet map
+# leaflet() %>%
+#   addTiles() %>%
+#   addRasterImage(
+#     pre_fires, 
+#     opacity = 0.7,
+#     group = "Pre-Fire RGB Composite"
+#   )
+
+```
+
+```{r}
+
+post_fire_files <- list.files("data/post",
+                              pattern = post_output_prefix,
+                              full.names = TRUE)
+
+post_fires <- post_fire_files |>
+  map(rast) |>
+  reduce(mosaic)
+
+par(col.axis = 'white', col.lab = 'white', tck = 0)
+plotRGB(post_fires,
+        r= 2, g= 1, b= 1,
+        stretch = 'lin',
+        axes = TRUE,
+        main = 'Postfire RGB Composite Image, Bands 5,7')
+
+```
+
+## Calculate Normalized Burn Ratio and Burn Severity (dNBR)
+
+```{r}
+
+# Calculating the Delta Normalized Burn Ratio Index 
+nbr_pre <- 1000 * (pre_fires[[1]] - pre_fires[[2]]) / 
+  (pre_fires[[1]] + pre_fires[[2]])
+
+nbr_post <- 1000 * (post_fires[[1]] - post_fires[[2]]) / 
+  (post_fires[[1]] + post_fires[[2]])
+
+# Attempt to calculate the Differenced Normalized Burn Ratio Index
+dnbr <- (nbr_pre)-(nbr_post)
+
+```
+
+## Display Pre and Post Fires
+
+```{r}
+
+nbr_stack <- c(nbr_pre, nbr_post)
+names(nbr_stack) <- c("Pre-fire NBR", "Post-fire NBR")
+nbr_stack_df <- rasterdf(nbr_stack)
+
+ggplot(nbr_stack_df) +
+  geom_raster(aes(x = x, 
+                  y = y, 
+                  fill = value)) + 
+  scale_fill_gradient(name = "NBR", 
+                       low = "lightyellow", 
+                       high = "darkgreen") +
+  coord_sf(expand = FALSE) +
+  annotation_scale(location = 'bl') +
+  facet_wrap(facets = vars(variable), 
+             ncol = 1) +
+  theme_void()
+
+```
+
+## Display dNBR
+
+```{r}
+
+dnbr_df <- rasterdf(dnbr)
+
+ggplot(dnbr_df) +
+  geom_raster(aes(x = x, 
+                  y = y, 
+                  fill = value)) + 
+  scale_fill_gradient2(name = "DNBR", 
+                       low = "blue", 
+                       high = "red",
+                       midpoint = 0) +
+  coord_sf(expand = F) +
+  annotation_scale(location = 'bl') +
+  theme_void()
+
+```
+
+## Classify Severity
+
+```{r}
+
+# Classifying the index values into a matrix
+rclas <- matrix(c(-Inf, -970, NA,  # Missing data
+                  -970, -100, 5,   # Increased greenness
+                  -100, 80, 1,     # Unburned
+                  80, 265, 2,      # Low severity
+                  265, 490, 3,     # Moderate severity
+                  490, Inf, 4),    # High severity
+                ncol = 3, byrow = T)
+
+severity <- classify(dnbr, rclas)
+
+SCcolors = c("#008080", 
+             "#5f9ea0", 
+             "#e0e0e0", 
+             "#a0522d", 
+             "#8b0000")
+SCnames = c("Unburned", 
+            "Low", 
+            "Moderate", 
+            "High", 
+            "> Green")
+
+severity_df <- rasterdf(severity)
+
+ggplot(severity_df) +
+  geom_raster(aes(x = x, 
+                  y = y, 
+                  fill = as.character(value))) + 
+  scale_fill_manual(name = "Severity Class",
+                    values = SCcolors,
+                    labels = SCnames,
+                    na.translate = FALSE) +
+  annotation_scale(location = 'bl') +
+  coord_fixed(expand = F) +
+  theme_void()
+
+```
+
+```{r}
+
+severity_counts <- severity_df %>%
+  count(value) %>%
+  mutate(
+    percentage = (n / sum(n)) * 100,  # Convert counts to percentages
+    value = as.character(value)       # Ensure value is a character for plotting
+  )
+
+# Create the bar chart showing percentages
+ggplot(severity_counts, aes(x = value, y = percentage, fill = value)) +
+  geom_bar(stat = "identity") +
+  scale_fill_manual(name = "Severity Class", values = SCcolors, labels = SCnames) +
+  labs(x = "Severity Class",
+       y = "Percentage of Pixels",
+       title = "dNBR Percentages by Severity Class",
+       subtitle = "A0103: Paso Caballos") +
+  theme_minimal() +
+  geom_text(aes(label = sprintf("%.1f%%", percentage)),  # Format label to 1 decimal place
+            vjust = 1, size = 5) +
+  theme(
+    plot.title = element_text(hjust = 0.5, size = 18, face = "bold"),  # Center title & increase size
+    axis.title = element_text(size = 14)
+  )
+
+severity_counts <- severity_df %>%
+  count(value) %>%
+  mutate(
+    percentage = (n / sum(n)) * 100,  # Convert counts to percentages
+    value = as.character(value)       # Ensure value is a character for plotting
+  ) |>
+  filter(!is.na(value))
+
+# Create the bar chart showing percentages
+severity_plot <- ggplot(severity_counts, aes(x = value, y = percentage, fill = value)) +
+  geom_bar(stat = "identity") +
+  scale_fill_manual(name = "Severity Class", values = SCcolors, labels = SCnames) +
+  labs(x = "Severity Class",
+       y = "Percentage of Pixels",
+       title = "dNBR Percentages by Severity Class",
+       subtitle = "A0105: Sierra del Lacandon") +
+  theme_minimal() +
+  geom_text(aes(label = sprintf("%.1f%%", percentage)),  # Format label to 1 decimal place
+            vjust = 1, size = 5) +
+  theme(
+    plot.title = element_text(hjust = 0.5, size = 18, face = "bold"),  # Center title & increase size
+    plot.subtitle = element_text(hjust = 0.5, size = 14)
+  )
+
+ggsave("outputs/A0105-dNBR-Percentages-by-Severity-Class.jpg",
+       plot = severity_plot, width = 8, height = 6, dpi = 300)
+```
+
+```{r}
+
+# # Define severity classification matrix
+# rclas <- matrix(c(-Inf, -970, NA,   # Missing data
+#                   -970, -100, 5,     # Increased greenness
+#                   -100, 80, 1,       # Unburned
+#                   80, 265, 2,        # Low severity
+#                   265, 490, 3,       # Moderate severity
+#                   490, Inf, 4),      # High severity
+#                 ncol = 3, byrow = TRUE)
+
+# Color palette
+severity_colors = c("#008080", 
+             "#5f9ea0", 
+             "#e0e0e0", 
+             "#a0522d", 
+             "#8b0000")
+severity_names = c("Unburned", 
+            "Low", 
+            "Moderate", 
+            "High", 
+            "> Green")
+
+# Create leaflet map
+leaflet() %>%
+  addTiles() %>%
+  addRasterImage(
+    severity,
+    colors = severity_colors,
+    opacity = 0.7,
+    group = "Severity Classes"
+  ) %>%
+  addLegend(
+    position = "bottomright",
+    colors = severity_colors,
+    labels = severity_names,
+    title = "Severity Class"
+  )
+
+```

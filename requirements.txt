@@ -1,5 +1,10 @@
-earthengine_api==1.4.4
+earthengine_api==1.6.4
+geedim==1.9.1
+geemap==0.36.2
+geopandas==1.1.1
 matplotlib==3.10.0
 numpy==2.2.1
 Pillow==11.1.0
 Requests==2.32.3
+setuptools==80.9.0
+tkcalendar==1.6.1

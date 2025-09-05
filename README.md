@@ -3,7 +3,7 @@ Repository for CDL Guatemala Fire Severity Analysis Nov 2024
 
 ## Requirements
 
-This repo assumes you have already installed R, Python (or other distribution like Anaconda), and RStudio. If you have not installed these tools, please install them before proceeding.
+**This repo assumes you have already installed R, Python (or another distribution like Anaconda), and RStudio. If you have not installed these tools, please install them before proceeding.**
 
 - [R](https://cran.r-project.org/)
 - [Python](https://www.python.org/)
@@ -96,8 +96,8 @@ First you will need to create a Google Cloud Project and give it Earth Engine ac
 To connect your local version of this project to Google Earth Engine, run the following lines each session in a Python terminal, replacing "project" with the name of your project you created in the step above.
 
 ```
-  ee.Authenticate()
-  ee.Initialize(project)
+ee.Authenticate()
+ee.Initialize(project="<your-project-name-here>")
 ```
 
 ## Regular Startup
@@ -106,6 +106,10 @@ Once you have setup the project following the instructions above once, the follo
 
 1. Open the `.Rproj` file
 2. In a command prompt/terminal window, activate your Python virtual environment ([see instructions above](#activate-virtual-environment))
+
+## Generating the Fire Severity Data
+
+The fire severity data and maps are created in the file `fire-severity-landsat.qmd`. This file contains instructions on how to generate new reports.
 
 ## Resources
 

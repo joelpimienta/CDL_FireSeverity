@@ -2,6 +2,11 @@ import ee
 import geemap
 import geopandas as gpd
 import json
+import os
+import time
+import tkinter as tk
+from tkinter import filedialog
+from tkcalendar import Calendar
 
 # create a bounding box given a set of lat/long values
 #
@@ -137,8 +142,18 @@ def process_aoi(
     scale=30,
     bands=['SR_B5', 'SR_B7']
     ):
+      
+  print("project", project)
+  time.sleep(3)
+  print("start date", start_date)
+  time.sleep(3)
+  print("end date", end_date)
+  time.sleep(3)
+  print("out_dir", out_dir)
+  time.sleep(3)
     
     # Initialize Earth Engine
+  print("Authenticating...")
   ee.Authenticate()
   ee.Initialize(project = project)
   
@@ -160,3 +175,101 @@ def process_aoi(
   )
   
   print(f"Download complete. Files saved to: {out_dir}")
+  
+
+# this function is used to provide the user a file select window
+def select_file():
+    # Create a hidden root window
+    root = tk.Tk()
+    root.withdraw()  
+
+    # Open file selector
+    file_path = filedialog.askopenfilename(
+        title="Select a file",
+        filetypes=[("All files", "*.*")]  # You can restrict to e.g. ("Text files", "*.txt")
+    )
+
+    if file_path:
+        print("Selected file:", file_path)
+        root.destroy()
+        # Save to a variable or a file
+        return file_path
+    else:
+        print("No file selected.")
+        return None
+
+def pick_date(title):
+    # Create root window
+    root = tk.Tk()
+    root.title(title)
+
+    # Create calendar widget
+    cal = Calendar(root, selectmode="day", date_pattern="yyyy-mm-dd")
+    cal.pack(pady=20)
+
+    selected_date = {"value": None}  # use dict to capture inside nested function
+
+    # Function to grab selected date
+    def get_date():
+        selected_date["value"] = cal.get_date()
+        print("Selected:", selected_date["value"])
+        root.destroy()  # close window after selection
+
+    # Button to confirm selection
+    tk.Button(root, text="OK", command=get_date).pack(pady=10)
+    root.mainloop()
+    return selected_date["value"]
+
+if __name__ == "__main__":
+    ###########
+    #
+    # define these variables before starting
+    #
+    ###########
+    EE_PROJECT = "ee-samettenborough"
+    PRE_OUT_DIR = "data/pre"
+    POST_OUT_DIR = "data/post"
+    
+    ###########
+    #
+    # these variables are set interactively
+    #
+    ###########
+    aoi_file_path = select_file()
+    pre_fire_start_date = pick_date("Select a Pre Fire Start Date")
+    pre_fire_end_date = pick_date("Select a Pre Fire End Date")
+    post_fire_start_date = pick_date("Select a Post Fire Start Date")
+    post_fire_end_date = pick_date("Select a Post Fire End Date")
+    
+    aoi_file_name = os.path.splitext(os.path.basename(aoi_file_path))[0]
+    pre_output_prefix = f"{aoi_file_name}_landsat_pre_SR5_SR7_"
+    post_output_prefix = f"{aoi_file_name}_landsat_post_SR5_SR7_"
+    
+    ###########
+    #
+    # begin the download process
+    #
+    ###########
+    
+    # pre fire search window
+    process_aoi(
+      EE_PROJECT,
+      pre_fire_start_date,
+      pre_fire_end_date,
+      out_dir = PRE_OUT_DIR,
+      geometry = aoi_file_path,
+      prefix=pre_output_prefix,
+    )
+    
+    # post fire search window
+    process_aoi(
+      EE_PROJECT,
+      post_fire_start_date,
+      post_fire_end_date,
+      out_dir = POST_OUT_DIR,
+      geometry = aoi_file_path,
+      prefix=post_output_prefix,
+    )
+
+    
+    
