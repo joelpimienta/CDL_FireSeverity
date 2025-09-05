@@ -19,6 +19,8 @@ params:
     pre_end_date: "2024-03-01"
     post_start_date: "2024-04-01"
     post_end_date: "2024-08-01"
+    pre_output_prefix: "EMSR727_AOI03_BLP_PRODUCT_areaOfInterestA_v1_landsat_pre_SR5_SR7"
+    post_output_prefix: "EMSR727_AOI03_BLP_PRODUCT_areaOfInterestA_v1_landsat_post_SR5_SR7"
 format:
   html:
     theme: flatly
@@ -52,7 +54,25 @@ Conservation Data Lab, Randy Swaty, Sam Ettenborough
 
 *This report assumes you have already run through the setup instructions in the `README.md` file. If you have not, please review those instructions before attempting to render this file.*
 
-To run this file, please adjust the 
+To run this file, please adjust the parameters in the YAML front matter. Here's a description of what each parameter:
+
+-   **`ee_project`** *(string)*\
+    \> This parameter represents the name of the Google Earth Engine project created in the setup of this repo.
+
+-   **`aoi_fp`** *(file path)*\
+    \> This parameter represents the filepath of a shapefile of the area of interest. Use this to select different areas to study.
+
+-   **`pre_start_date`** *(date, YYYY-MM-DD)*\
+    \> This parameter represents the start of the search window for Landsat imagery *before* the fire period. Landsat imagery returns to a place about every two weeks so you will need at least a two week window to get an image. Additionally, a single image may be cloudy, so it's recommeneded to choose a window that allows for multiple images.
+
+-   **`pre_end_date`** *(date, YYYY-MM-DD)*\
+    \> This parameter represents the end of the search window for Landsat imagery *before* the fire period. These two parameters combine to make a search window like 1/1/2025 to 4/1/2025 where it will return all images taken of a particular place within that time frame.
+
+-   **`post_start_date`** *(date, YYYY-MM-DD)*\
+    \> This parameter represents the start of the search window for Landsat imagery *after* the fire period.
+
+-   **`post_end_date`** *(date, YYYY-MM-DD)*\
+    \> This parameter represents the end of the search window for Landsat imagery *after* the fire period.
 
 ```{r}
 #| label: setup
@@ -79,7 +99,6 @@ here::i_am("fire-severity-landsat.qmd")
 # A function will appear in your global environment if this code ran properly ('rasterdf')
 source(here::here("utils/rasterdf.R"))
 # source_python(here::here("utils/download-landsat-imagery.py"))
-source_python(here::here("utils/download-landsat-imagery.py"))
 
 # GEE project title
 project <- params$ee_project
@@ -95,6 +114,9 @@ pre_end_date <- params$pre_end_date
 post_start_date <- params$post_start_date
 post_end_date <- params$post_end_date
 
+pre_output_prefix <- params$pre_output_prefix
+post_output_prefix <- params$post_output_prefix
+
 ```
 
 ## Importing Landsat Files
@@ -102,44 +124,39 @@ post_end_date <- params$post_end_date
 ```{r}
 #| output: false
 
-####### below are some aoi's you can uncomment to see how they will run through
-####### this process - they are for demo purposes only
-
-# # fire 1 coordinates
-# fire_1 <- list(-91.253, 16.8194, -89.4018, 18.2112)
+# ####### below are some aoi's you can uncomment to see how they will run through
+# ####### this process - they are for demo purposes only
 # 
-# # these two fires started end of may and last measurements were in end of july
-# aoi_03 <- here::here("data/areas-of-interest/EMSR727_AOI03_BLP_PRODUCT_areaOfInterestA_v1.shp")
-# aoi_05 <- here::here("data/areas-of-interest/EMSR727_AOI05_BLP_PRODUCT_areaOfInterestA_v1.shp")
-
-# use the aoi file name to make a prefix for downloaded images
-pre_output_prefix <- aoi|>
-  str_remove(".*/") |>
-  str_remove("\\.shp$")
-
-pre_output_prefix <- paste(pre_output_prefix, "landsat_pre_SR5_SR7_",
-                           sep = "_")
-
-######### pre burn image download
-# # uncomment this section to re-download the images
-process_aoi(
-    project,
-    pre_start_date,
-    pre_end_date,
-    out_dir = "data/pre",
-    geometry = aoi,
-    prefix=pre_output_prefix,
-)
-
-# use the aoi file name to make a prefix for downloaded images
-post_output_prefix <- aoi|>
-  str_remove(".*/") |>
-  str_remove("\\.shp$")
-
-post_output_prefix <- paste(post_output_prefix, "landsat_post_SR5_SR7_",
-                            sep = "_")
-
-######### post burn image download
+# # # fire 1 coordinates
+# # fire_1 <- list(-91.253, 16.8194, -89.4018, 18.2112)
+# # 
+# # # these two fires started end of may and last measurements were in end of july
+# # aoi_03 <- here::here("data/areas-of-interest/EMSR727_AOI03_BLP_PRODUCT_areaOfInterestA_v1.shp")
+# # aoi_05 <- here::here("data/areas-of-interest/EMSR727_AOI05_BLP_PRODUCT_areaOfInterestA_v1.shp")
+# 
+# # use the aoi file name to make a prefix for downloaded images
+# output_prefix <- aoi|>
+#   str_remove(".*/") |>
+#   str_remove("\\.shp$")
+# 
+# pre_output_prefix <- paste(output_prefix, "landsat_pre_SR5_SR7_",
+#                            sep = "_")
+# 
+# post_output_prefix <- paste(output_prefix, "landsat_post_SR5_SR7_",
+#                             sep = "_")
+# 
+# ######### pre burn image download
+# # # uncomment this section to re-download the images
+# process_aoi(
+#     project,
+#     pre_start_date,
+#     pre_end_date,
+#     out_dir = "data/pre",
+#     geometry = aoi,
+#     prefix=pre_output_prefix,
+# )
+# 
+# ######### post burn image download
 # # uncomment this section to re-download the images
 # process_aoi(
 #     project,
@@ -183,6 +200,7 @@ plotRGB(pre_fires,
 #   )
 
 ```
+
 ```{r}
 
 post_fire_files <- list.files("data/post",
@@ -201,6 +219,7 @@ plotRGB(post_fires,
         main = 'Postfire RGB Composite Image, Bands 5,7')
 
 ```
+
 ## Calculate Normalized Burn Ratio and Burn Severity (dNBR)
 
 ```{r}

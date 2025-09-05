@@ -96,8 +96,8 @@ First you will need to create a Google Cloud Project and give it Earth Engine ac
 To connect your local version of this project to Google Earth Engine, run the following lines each session in a Python terminal, replacing "project" with the name of your project you created in the step above.
 
 ```
-  ee.Authenticate()
-  ee.Initialize(project)
+ee.Authenticate()
+ee.Initialize(project="<your-project-name-here>")
 ```
 
 ## Regular Startup
